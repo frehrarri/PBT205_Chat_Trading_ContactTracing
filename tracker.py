@@ -8,7 +8,7 @@ positions = {} #each persons current position {uid,(x,y)}
 
 def position_callback(ch, method, properties, body):
     try:
-        print(f" [x] Received {body}")
+        print(f" [Received] {body}")
         data = json.loads(body)
 
         #set initial position if there is no current position
@@ -21,13 +21,13 @@ def position_callback(ch, method, properties, body):
         move_person(data['uid'], data['traverse'])
 
     except (json.JSONDecodeError, KeyError, ValueError) as e:
-        print(f"[!] Malformed position message: {body} ({e})")     
+        print(f"[Error] Malformed position message: {body} ({e})")     
 
 
 
 def query_callback(ch, method, properties, body):
     try:
-        print(f" [x] Received {body}")
+        print(f" [Received] {body}")
         data = json.loads(body)
         
         #there is an existing uid in the contact queue so we trace their contacts
@@ -36,15 +36,8 @@ def query_callback(ch, method, properties, body):
             ch.basic_publish(exchange="", routing_key="query_response", body=json.dumps(contacted))
 
     except (json.JSONDecodeError, KeyError, ValueError) as e:
-        print(f"[!] Malformed position message: {body} ({e})")
+        print(f"[Error] Malformed position message: {body} ({e})")
 
-def query_response_callback(ch, method, properties, body):
-    try:
-        print(f" [x] Received {body}")
-        data = json.loads(body)
-
-    except (json.JSONDecodeError, KeyError, ValueError) as e:
-        print(f"[!] Malformed position message: {body} ({e})")
 
 
 def main():
@@ -64,11 +57,8 @@ def main():
     #subscribe to query topic
     channel.basic_consume(queue='query', on_message_callback=query_callback, auto_ack=True)
 
-
-    #channel.basic_consume(queue='query_response', on_message_callback=query_response_callback, auto_ack=True)
-    
     #loop and listen forever (blocks anything after)
-    print(' [*] Waiting for messages. To exit press CTRL+C')
+    print('[Listening] Waiting for messages... To exit press CTRL+C')
     channel.start_consuming()
 
 
@@ -77,6 +67,7 @@ def main():
 def create_env(rows = 10, cols = 10):
     global environment
     environment = [[set() for _ in range(cols)] for _ in range(rows)]
+
 
 #prevent out of bounds traversal
 def validate_boundaries(new_position):
@@ -121,12 +112,12 @@ def move_person(uid, traverse):
 # log contact between persons
 def log_contact(contacted_map, uid):
     contact.append(contacted_map)
-    print(f" Contact between {contacted_map[uid]} and {contacted_map.get(uid)}")
+    print(f"[Received] Contact between {contacted_map[uid]} and {contacted_map.get(uid)}")
 
 
 def trace_contact(uid):
-    test = contact.get(uid)
-    return
+    data = contact.get(uid)
+    return data
 
 
 if __name__ == '__main__':

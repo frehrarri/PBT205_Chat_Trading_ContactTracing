@@ -29,9 +29,10 @@ channel = connection.channel()
 #publish initial args (uid, move_speed) to the position queue
 channel.queue_declare(queue='position', durable=True, arguments={'x-queue-type': 'quorum'})
 
-time.sleep(MOVE_SPEED) #move only after the allotted time has expired
+#delay publish to traverse only after the allotted time has expired
+time.sleep(MOVE_SPEED) 
 channel.basic_publish(exchange='', routing_key='position', body=payload)
-print(f" [x] Sent '{data}'")
+print(f" [Sent] '{data}'")
 
 connection.close()
 
