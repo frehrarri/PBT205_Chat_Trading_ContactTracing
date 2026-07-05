@@ -1,4 +1,4 @@
-import pika, sys, os, json
+import pika, sys, os, json, random, time, threading
 
 environment = [] #the 'chessboard' matrix contains a set for uids
 contact = [] #list of dictionaries to track instances of a person making contact with another [{uid, (x,y)}]
@@ -18,7 +18,9 @@ def position_callback(ch, method, properties, body):
             return
 
         #if the person is already on the board, traverse
-        move_person(data['uid'], data['traverse'])
+        #new thread to prevent blocking of execution
+        thread = threading.Thread(target=traverse, args=(data["uid"], data["move_speed"]))
+        thread.start()
 
     except (json.JSONDecodeError, KeyError, ValueError) as e:
         print(f"[Error] Malformed position message: {body} ({e})")     
@@ -77,14 +79,23 @@ def validate_boundaries(new_position):
     return True
 
 
+#process for moving around the board randomly
+def traverse(uid, move_speed):
+    while True:
+        time.sleep(move_speed) 
+        move_person(uid)
+
+
 #move a person to a new position
-def move_person(uid, traverse):
+def move_person(uid):
     previous = positions.get(uid)
 
     if previous is None:
         return
     
-    x,y = traverse
+    x = random.randint(-1,1)
+    y = random.randint(-1,1)
+
     new_position = ((previous[0] + x), (previous[1] + y)) #calculate new position after traversal
 
     #only traverse if movement is within boundaries
@@ -94,6 +105,8 @@ def move_person(uid, traverse):
         environment[previous[0]][previous[1]].discard(uid)  #remove user from location in matrix
         positions[uid] = new_position #update previous position
         environment[new_position[0]][new_position[1]].add(uid) #add user to matrix
+
+        print(f"{uid} moved from {previous} to {new_position}")
 
         #if 2+ people occupy same position, log contact
         existing_residents = environment[new_position[0]][new_position[1]] # persons who already exist at the tile being moved to
@@ -112,7 +125,7 @@ def move_person(uid, traverse):
 # log contact between persons
 def log_contact(contacted_map, uid):
     contact.append(contacted_map)
-    print(f"[Received] Contact between {contacted_map[uid]} and {contacted_map.get(uid)}")
+    print(f"Contact between {contacted_map[uid]} and {contacted_map.get(uid)}")
 
 
 def trace_contact(uid):
