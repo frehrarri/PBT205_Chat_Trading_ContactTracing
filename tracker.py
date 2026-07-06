@@ -5,11 +5,22 @@ contact = [] #list of dictionaries to track instances of a person making contact
 positions = {} #each persons current position {uid,(x,y)}
 
 
+def init_startup_args():
+    host = "localhost"
+
+    #validate host argument
+    if len(sys.argv) >= 2:
+        host = sys.argv[1]
+
+    return host
+
+#startup args
+HOST = init_startup_args()
 
 def position_callback(ch, method, properties, body):
     try:
         print(f" [Received] {body}")
-        data = json.loads(body)
+        data = json.loads(body) #deserialize
 
         #set initial position if there is no current position
         if (positions.get(data['uid']) is None):
@@ -30,7 +41,7 @@ def position_callback(ch, method, properties, body):
 def query_callback(ch, method, properties, body):
     try:
         print(f" [Received] {body}")
-        data = json.loads(body)
+        data = json.loads(body) #deserialize
         
         #there is an existing uid in the contact queue so we trace their contacts
         if data['uid'] is not None and contact.get(data['uid']) is not None and data['uid'] != "":
@@ -45,7 +56,7 @@ def query_callback(ch, method, properties, body):
 def main():
     create_env() #create a 10x10 matrix (scalable by passing x,y vals) 
 
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host=HOST))
     channel = connection.channel()
 
     #create queues
@@ -127,10 +138,9 @@ def log_contact(contacted_map, uid):
     contact.append(contacted_map)
     print(f"Contact between {contacted_map[uid]} and {contacted_map.get(uid)}")
 
-
+# filter and return list for dictionaries that have the uid as a key
 def trace_contact(uid):
-    data = contact.get(uid)
-    return data
+    return [c for c in contact if uid in c]
 
 
 if __name__ == '__main__':
