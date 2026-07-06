@@ -25,7 +25,8 @@ def position_callback(ch, method, properties, body):
         #set initial position if there is no current position
         if (positions.get(data['uid']) is None):
             x, y = data['init_position']
-            positions[data['uid']] = (x,y)
+            positions[data['uid']] = (x,y) #update the position tracker
+            environment[x][y].add(data['uid']) # add initial position to board
             return
 
         #if the person is already on the board, traverse
@@ -44,8 +45,9 @@ def query_callback(ch, method, properties, body):
         data = json.loads(body) #deserialize
         
         #there is an existing uid in the contact queue so we trace their contacts
-        if data['uid'] is not None and contact.get(data['uid']) is not None and data['uid'] != "":
-            contacted = trace_contact(data['uid'])
+        uid = data['uid']
+        if uid:
+            contacted = trace_contact(uid)
             ch.basic_publish(exchange="", routing_key="query_response", body=json.dumps(contacted))
 
     except (json.JSONDecodeError, KeyError, ValueError) as e:
@@ -122,21 +124,24 @@ def move_person(uid):
         #if 2+ people occupy same position, log contact
         existing_residents = environment[new_position[0]][new_position[1]] # persons who already exist at the tile being moved to
 
+        #there exists persons at the square moved to
         if len(existing_residents) > 1:
-            contacted_map = { uid : set()} 
+            contacted_map = { uid : [] } #keep track of the person being moved
 
             #loop through occupants and add to map ex. contacted_map = {'Bob' : {"Alice", "John"}} 
             for resident in existing_residents:
                 if resident != uid:
-                    contacted_map[uid].add(resident)
+                    contacted_map[uid].append(resident)
+                    log_resident_contact(uid, resident) #log resident's perspective
 
-            log_contact(contacted_map, uid)
+            contact.append(contacted_map) #log contact for person who moved
 
 
-# log contact between persons
-def log_contact(contacted_map, uid):
-    contact.append(contacted_map)
-    print(f"Contact between {contacted_map[uid]} and {contacted_map.get(uid)}")
+            
+#log contact from residents perspective
+def log_resident_contact(uid, resident):
+    contact.append({resident: [uid]})
+    print(f"Contact between {uid} and {resident}")
 
 # filter and return list for dictionaries that have the uid as a key
 def trace_contact(uid):
