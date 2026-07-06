@@ -1,4 +1,6 @@
-import sys, pika, json, random
+import sys, pika, json, random, time
+
+BOARD_SIZE = 10
 
 #ensure valid startup args. if invalid then default.
 def init_startup_args():
@@ -29,26 +31,38 @@ def init_startup_args():
 HOST, UID, MOVE_SPEED = init_startup_args()
 
 def init_position():
-    x = random.randint(0,9)
-    y = random.randint(0,9)
+    x = random.randint(0, BOARD_SIZE - 1)
+    y = random.randint(0, BOARD_SIZE - 1)
     return (x,y)
 
-data = { 
-        "uid" : str(UID),
-        "move_speed" : MOVE_SPEED,
-        "init_position" : init_position(),
-        }
-
-payload = json.dumps(data) #serialize
+def move_person():
+    x = random.randint(-1,1)
+    y = random.randint(-1,1)
+    return (x,y)
 
 connection = pika.BlockingConnection(pika.ConnectionParameters(host=HOST))
 channel = connection.channel()
 
-#publish initial args (uid, move_speed) to the position queue
+#publish initial args to the position queue
 channel.queue_declare(queue='position', durable=True, arguments={'x-queue-type': 'quorum'})
 
-channel.basic_publish(exchange='', routing_key='position', body=payload)
-print(f" [Sent] '{data}'")
+#continually send updated position
+try:
+    while True:
+        time.sleep(MOVE_SPEED)
+        data = {
+            "uid": str(UID),
+            "move_speed" : MOVE_SPEED,
+            "init_position" : init_position(),
+            "traverse": move_person(),
+        }
 
-connection.close()
+        payload = json.dumps(data)
+        channel.basic_publish(exchange='', routing_key='position', body=payload)
+        print(f" [Sent] '{data}'")
+    
+except KeyboardInterrupt:
+    print("Execution interrupted")
+finally:
+    connection.close()
 

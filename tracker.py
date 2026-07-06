@@ -1,5 +1,6 @@
-import pika, sys, os, json, random, time, threading
+import pika, sys, os, json, random, time
 
+BOARD_SIZE = 10
 environment = [] #the 'chessboard' matrix contains a set for uids
 contact = [] #list of dictionaries to track instances of a person making contact with another [{uid, (x,y)}]
 positions = {} #each persons current position {uid,(x,y)}
@@ -24,15 +25,15 @@ def position_callback(ch, method, properties, body):
 
         #set initial position if there is no current position
         if (positions.get(data['uid']) is None):
-            x, y = data['init_position']
-            positions[data['uid']] = (x,y) #update the position tracker
-            environment[x][y].add(data['uid']) # add initial position to board
-            return
+            x,y = data['init_position']
+
+            if(validate_boundaries(data['init_position'])):
+                positions[data['uid']] = (x,y) #update the position tracker
+                environment[x][y].add(data['uid']) # add initial position to board
+                return
 
         #if the person is already on the board, traverse
-        #new thread to prevent blocking of execution
-        thread = threading.Thread(target=traverse, args=(data["uid"], data["move_speed"]))
-        thread.start()
+        move_person(data['uid'], data['traverse'])
 
     except (json.JSONDecodeError, KeyError, ValueError) as e:
         print(f"[Error] Malformed position message: {body} ({e})")     
@@ -48,7 +49,8 @@ def query_callback(ch, method, properties, body):
         uid = data['uid']
         if uid:
             contacted = trace_contact(uid)
-            ch.basic_publish(exchange="", routing_key="query_response", body=json.dumps(contacted))
+            names = [list(entry.values())[0][0] for entry in contacted]
+            ch.basic_publish(exchange="", routing_key="query_response", body=json.dumps(names))
 
     except (json.JSONDecodeError, KeyError, ValueError) as e:
         print(f"[Error] Malformed position message: {body} ({e})")
@@ -79,35 +81,27 @@ def main():
 
 
 #create num of rows/columns for a multi-array environment
-def create_env(rows = 10, cols = 10):
+def create_env(rows = BOARD_SIZE, cols = BOARD_SIZE):
     global environment
     environment = [[set() for _ in range(cols)] for _ in range(rows)]
 
 
 #prevent out of bounds traversal
 def validate_boundaries(new_position):
-    if new_position[0] > 9 or new_position[0] < 0 or new_position[1] > 9 or new_position[1] < 0:
+    if new_position[0] > BOARD_SIZE - 1 or new_position[0] < 0 or new_position[1] > BOARD_SIZE - 1 or new_position[1] < 0:
         return False
     
     return True
 
 
-#process for moving around the board randomly
-def traverse(uid, move_speed):
-    while True:
-        time.sleep(move_speed) 
-        move_person(uid)
-
-
 #move a person to a new position
-def move_person(uid):
+def move_person(uid, traverse):
     previous = positions.get(uid)
 
     if previous is None:
         return
     
-    x = random.randint(-1,1)
-    y = random.randint(-1,1)
+    x,y = traverse
 
     new_position = ((previous[0] + x), (previous[1] + y)) #calculate new position after traversal
 
