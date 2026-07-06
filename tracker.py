@@ -8,8 +8,8 @@ canvas = None
 
 BOARD_SIZE = 10
 environment = [] #the 'chessboard' matrix contains a set for uids
-contact = [] #list of dictionaries to track instances of a person making contact with another [{uid, (x,y)}]
-positions = {} #each persons current position {uid,(x,y)}
+contact = [] #list of dictionaries to track instances of a person making contact with another
+positions = {} #each persons current position
 
 
 def init_startup_args():
