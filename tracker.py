@@ -74,26 +74,6 @@ def main():
     consumer_thread.start()
     start_gui()  
 
-    # connection = pika.BlockingConnection(pika.ConnectionParameters(host=HOST))
-    # channel = connection.channel()
-
-    # #create queues
-    # channel.queue_declare(queue='position', durable=True, arguments={'x-queue-type': 'quorum'})
-    # channel.queue_declare(queue='query', durable=True, arguments={'x-queue-type': 'quorum'})
-    # channel.queue_declare(queue='query_response', durable=True, arguments={'x-queue-type': 'quorum'})
-
-    # #subscribe to position topic
-    # channel.basic_consume(queue='position', on_message_callback=position_callback, auto_ack=True)
-
-    # #subscribe to query topic
-    # channel.basic_consume(queue='query', on_message_callback=query_callback, auto_ack=True)
-
-    # #loop and listen forever (blocks anything after)
-    # print('[Listening] Waiting for messages... To exit press CTRL+C')
-    # channel.start_consuming()
-
-
-
 #create num of rows/columns for a multi-array environment
 def create_env(rows = BOARD_SIZE, cols = BOARD_SIZE):
     global environment
