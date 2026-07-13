@@ -1,6 +1,15 @@
 # PBT205_Chat_Trading_ContactTracing
 Middleware (Docker w/ RabbitMQ) with 3 prototypes: chatting app, trading system app, contact tracing app.
 
+## StockTrading
+sendOrder.py
+- args: python file_name host_address username side(transaction_type) price quantity(defaults to 100)
+- ex: python sendOrder.py localhost mitch sell 2.48 100
+
+exchange.py
+- args: python file_name host_address
+- ex: python exchange.py localhost
+
 ## ContactTracing:
 query.py
 - args: python file_name host_address person
