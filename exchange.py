@@ -26,6 +26,7 @@ def transact(ch, method, properties, body):
 
     transact_key = None
     transact_type = None
+    order_filler = None
 
     #incoming order is sell
     if data["transaction_type"].lower() == "sell":
@@ -36,6 +37,7 @@ def transact(ch, method, properties, body):
                 #there exists an acceptable value so commit transaction
                 if data["price"] <= value["price"]:
                     transact_key = key
+                    order_filler = data["username"]
                     break
 
             #there is no acceptable value so log for future transactions
@@ -55,6 +57,7 @@ def transact(ch, method, properties, body):
                 #there exists an acceptable value so commit transaction
                 if data["price"] >= value["price"]:
                     transact_key = key
+                    order_filler = data["username"]
                     break
             
             #there is no acceptable value so log for future transactions
@@ -76,7 +79,10 @@ def transact(ch, method, properties, body):
             order = sell_orders.pop(transact_key) 
 
         if order is not None:
+            order["order_filler"] = order_filler
             ch.basic_publish(exchange="", routing_key="trades", body=json.dumps(order)) #publish trade
+            action = "Bought" if transact_type == "buy" else "Sold"
+            print(f"[{order['username']}] {action} {order['qty']}x stock @ ${order['price']} (fulfilled by {order_filler})")
             
         transact_key = None #reset key for next incoming transaction
 

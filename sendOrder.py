@@ -8,11 +8,11 @@ def init_startup_args():
     qty = 100
 
     #validate host argument
-    if sys.argv[1] is not None or sys.argv[1].strip():
+    if sys.argv[1] is not None and sys.argv[1].strip():
         host = sys.argv[1]
 
     #validate username
-    if not sys.argv[2] or not sys.argv[2].strip():
+    if not sys.argv[2] and not sys.argv[2].strip():
         print("invalid startup arg: username")
         sys.exit(1)
     else:
@@ -65,7 +65,8 @@ def submit():
 
     payload = json.dumps(data)
     channel.basic_publish(exchange='', routing_key='orders', body=payload)
-    print(f" [{USERNAME}]: {TRANSACTION_TYPE} {QTY} stock @ {PRICE} submitted")
+    print(f" [{USERNAME}]: {TRANSACTION_TYPE} request {QTY}x stock @ ${PRICE} submitted")
 
 submit()
+connection.close()
 sys.exit()
